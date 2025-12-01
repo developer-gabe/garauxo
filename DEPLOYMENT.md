@@ -65,33 +65,72 @@ Consider using cloud storage for media:
 
 ### Option 1: Vercel (Recommended - Easiest)
 
-1. **Install Vercel CLI:**
-```bash
-npm i -g vercel
-```
+⚠️ **IMPORTANT: SQLite Doesn't Work on Vercel!**
 
-2. **Login to Vercel:**
-```bash
-vercel login
-```
+Vercel is a serverless platform, which means:
+- Your SQLite database file will be **deleted** on each deployment
+- File uploads will also be **lost**
+- You MUST use a hosted database for Vercel
 
-3. **Deploy:**
-```bash
-vercel --prod
-```
+**Quick Setup for Vercel:**
 
-4. **Set Environment Variables:**
-Go to your Vercel dashboard → Settings → Environment Variables
+#### A. Switch to Vercel Postgres (Recommended)
 
-Add:
-- `DATABASE_URL`
-- `ADMIN_EMAIL`
-- `ADMIN_PASSWORD`
+1. **Create Vercel Postgres Database:**
+   - Go to Vercel Dashboard → Storage → Create Database
+   - Select Postgres
+   - Copy the connection string
 
-**Important for SQLite on Vercel:**
-- Vercel is serverless, so SQLite file will be ephemeral
-- Consider using Vercel Postgres instead
-- Or use a hosted database like Supabase, Railway, or PlanetScale
+2. **Update Prisma Schema:**
+   Edit `prisma/schema.prisma`:
+   ```prisma
+   datasource db {
+     provider = "postgresql"
+     url      = env("DATABASE_URL")
+   }
+   ```
+
+3. **Create and apply migration:**
+   ```bash
+   npx prisma migrate dev --name switch_to_postgres
+   ```
+
+4. **Deploy:**
+   ```bash
+   npm i -g vercel
+   vercel login
+   vercel --prod
+   ```
+
+5. **Set Environment Variables in Vercel Dashboard:**
+   - `DATABASE_URL` (from Vercel Postgres)
+   - `ADMIN_EMAIL`
+   - `ADMIN_PASSWORD`
+
+6. **Run migrations and seed in Vercel:**
+   After first deployment, run:
+   ```bash
+   # In Vercel dashboard, go to Settings → Functions → Add
+   # Or use Vercel CLI:
+   vercel env pull
+   npx prisma migrate deploy
+   npx tsx scripts/seed.ts
+   ```
+
+#### B. Alternative: Use External Database
+
+Instead of Vercel Postgres, you can use:
+- **Supabase** (free tier, includes Postgres + auth)
+- **Railway** (easy setup, includes Postgres)
+- **PlanetScale** (MySQL, generous free tier)
+- **Neon** (Postgres, serverless)
+
+For any of these:
+1. Create database account
+2. Get connection string
+3. Update `DATABASE_URL` in Vercel
+4. Update schema to use `postgresql` (or `mysql` for PlanetScale)
+5. Deploy
 
 ### Option 2: Railway
 
